@@ -1,4 +1,4 @@
-// Generated from d:/Work/grammarinator_ucla_cs230/calculator/Calculator.g4 by ANTLR 4.13.1
+// Generated from /Users/brucexu/Desktop/UCLA/CS230/grammarinator_ucla_cs230/calculator/calculator.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;
@@ -86,7 +86,7 @@ public class CalculatorLexer extends Lexer {
 	}
 
 	@Override
-	public String getGrammarFileName() { return "Calculator.g4"; }
+	public String getGrammarFileName() { return "calculator.g4"; }
 
 	@Override
 	public String[] getRuleNames() { return ruleNames; }

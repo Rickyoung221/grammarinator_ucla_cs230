@@ -1,6 +1,6 @@
 in root folder, first run
 
-`grammarinator-process .\calculator\calculator.g4 -o .\calculator\`
+`grammarinator-process ./calculator/calculator.g4 -o ./calculator/`
 
 then run
 
@@ -12,7 +12,7 @@ then install if you don't have coverage
 
 then run
 
-`coverage run .\calculator\calculator.py`
+`coverage run ./calculator/calculator.py`
 
 then run
 

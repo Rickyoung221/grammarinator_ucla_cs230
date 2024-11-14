@@ -31,10 +31,10 @@ class Calculator:
             return self._evaluate_ast(parsed_expr)
         except ZeroDivisionError:
             print("Error: Division by zero is not allowed.")
-            raise ZeroDivisionError()
+            raise ValueError()
         except (SyntaxError, ValueError) as e:
             print(f"Invalid expression: {expression}, Error: {str(e)}")
-            raise ZeroDivisionError()
+            raise ValueError()
 
     def _evaluate_ast(self, node) -> float:
         """
@@ -55,12 +55,16 @@ class Calculator:
             if op_type in operators:
                 # Ensure exponentiation handles float values
                 if op_type is ast.Pow:
-                    return operators[op_type](float(left), float(right))
+                    try:
+                        return operators[op_type](float(left), float(right))
+                    except OverflowError as e:
+                        print(f"Error: {e}")
+                        raise ValueError()
                 try:
                     return operators[op_type](left, right)
                 except TypeError as e:
                     print(f"Error: {e}")
-                    raise ZeroDivisionError()
+                    raise ValueError()
             else:
                 raise ValueError("Unsupported operation")
         elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
@@ -82,9 +86,10 @@ if __name__ == "__main__":
             # Replace '^' with '**' for exponentiation
             expression = expression.replace('^', '**')
             print(f"Evaluating expression in {file_path}: {expression}")
+            result = None
             try:
                 result = calc.evaluate(expression)
                 assert result == eval(expression)
-            except ZeroDivisionError:
+            except ValueError:
                 pass
             print("Result:", result, '\n')
