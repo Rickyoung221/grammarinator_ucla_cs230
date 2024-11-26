@@ -161,7 +161,7 @@ def execute():
     args.out = args.out.replace('\\', '/')
 
     if args.iterative:
-        cov = coverage.Coverage(source=["calculator"], include=["calculator/calculator.py"])
+        cov = coverage.Coverage(include=["calculator/calculator.py"])
         dump = io.StringIO()
         iter = 0
         stale_iter = 0

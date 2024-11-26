@@ -1,8 +1,10 @@
-# Prereq
-
-`pip install coverage`
+# First step
 
 in root folder, run
+
+`pip install .`
+
+and
 
 `grammarinator-process ./calculator/calculator.g4 -o ./calculator/`
 
