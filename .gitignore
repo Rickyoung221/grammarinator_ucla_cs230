@@ -13,3 +13,4 @@ dist
 *.interp
 *.tokens
 grammarinator/tool/g4/ANTLRv4*.py
+calculator/test
