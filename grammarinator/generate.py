@@ -83,6 +83,7 @@ def create_test(generator_tool, index, *, seed):
 
 
 def execute():
+    target_loc = './target/'
     parser = ArgumentParser(description='Grammarinator: Generate', epilog="""
         The tool acts as a default execution harness for generators
         created by Grammarinator:Processor.
@@ -126,7 +127,7 @@ def execute():
     add_iteration_arguments(parser)
 
     # Auxiliary settings.
-    parser.add_argument('-o', '--out', metavar='FILE', default=join(os.getcwd(), 'tests', 'test_%d'),
+    parser.add_argument('-o', '--out', metavar='FILE', default=join(target_loc, 'tests', 'test_%d'),
                         help='output file name pattern (default: %(default)s).')
     parser.add_argument('--stdout', dest='out', action='store_const', const='', default=SUPPRESS,
                         help='print test cases to stdout (alias for --out=%(const)r)')
@@ -145,8 +146,11 @@ def execute():
     add_version_argument(parser, version=__version__)
     args = parser.parse_args()
 
+    if args.sys_path is None:
+        args.sys_path = target_loc
+
     # validate arguments for iteration mode
-    validate_iteration_arguments(args)
+    validate_iteration_arguments(args, target_loc)
 
     init_logging()
     process_log_level_argument(args, logger)
@@ -161,14 +165,14 @@ def execute():
     args.out = args.out.replace('\\', '/')
 
     if args.iterative:
-        cov = coverage.Coverage(include=["calculator/calculator.py"])
+        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py")
         dump = io.StringIO()
         iter = 0
         stale_iter = 0
         pre_coverage = 0
 
         # Path to the Python file
-        file_path = "calculator/calculator.py"
+        file_path = target_loc+args.start_filename
         spec = importlib.util.spec_from_file_location("calculator", file_path)
         calculator = importlib.util.module_from_spec(spec)
         original_stdout = sys.stdout

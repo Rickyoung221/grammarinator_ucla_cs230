@@ -76,10 +76,10 @@ class Calculator:
 def main():
     calc = Calculator()
 
-    folder_path = './calculator/tests/'  # Replace with your folder path
+    folder_path = './target/tests/'  # Replace with your folder path
 
-    # Enumerate all files matching "test_*.txt" pattern
-    for file_path in glob.glob(os.path.join(folder_path, '*test_*.txt')):
+    # Enumerate all files in target test folder
+    for file_path in glob.glob(os.path.join(folder_path,'*')):
         with open(file_path, 'r') as file:
             expression = file.read().strip()  # Read and strip whitespace/newlines
             # Replace '^' with '**' for exponentiation

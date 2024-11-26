@@ -6,7 +6,7 @@ in root folder, run
 
 and
 
-`grammarinator-process ./calculator/calculator.g4 -o ./calculator/`
+`grammarinator-process calculator.g4`
 
 # Base Case(no iteration)
 
@@ -16,7 +16,7 @@ in root folder, run
 
 then run
 
-`coverage run ./calculator/calculator.py`
+`coverage run ./target/calculator.py`
 
 then run
 
@@ -26,4 +26,4 @@ then run
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -o ./calculator/tests/test_%d.txt --sys-path ./calculator --iterative --coverage-goal 91 -n 10 -d 10`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --sys-path ./target --iterative --coverage-goal 91 --start-filename calculator.py -n 10 -d 10`

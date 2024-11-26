@@ -9,7 +9,6 @@
 import re
 
 from argparse import ArgumentParser
-from os import getcwd
 from os.path import exists
 
 from inators.arg import add_log_level_argument, add_version_argument, process_log_level_argument
@@ -26,8 +25,9 @@ def execute():
         creates a fuzzer that can generate randomized content conforming to
         the format described by the grammar.
         """)
+    target_loc = './target/'
     parser.add_argument('grammar', metavar='FILE', nargs='+',
-                        help='ANTLR grammar files describing the expected format to generate.')
+                        help='ANTLR grammar files describing the expected format to generate. Needs to be places within ./target folder.')
     parser.add_argument('-D', metavar='OPT=VAL', dest='options', default=[], action='append',
                         help='set/override grammar-level option')
     parser.add_argument('--language', metavar='LANG', choices=['py'], default='py',
@@ -40,7 +40,7 @@ def execute():
                         help='alternative location of import grammars.')
     parser.add_argument('--pep8', default=False, action='store_true',
                         help='enable autopep8 to format the generated fuzzer.')
-    parser.add_argument('-o', '--out', metavar='DIR', default=getcwd(),
+    parser.add_argument('-o', '--out', metavar='DIR', default=target_loc,
                         help='temporary working directory (default: %(default)s).')
     add_encoding_argument(parser, help='grammar file encoding (default: %(default)s).')
     add_encoding_errors_argument(parser)
@@ -48,9 +48,13 @@ def execute():
     add_version_argument(parser, version=__version__)
     args = parser.parse_args()
 
+    appended_grammar_paths = []
     for grammar in args.grammar:
-        if not exists(grammar):
-            parser.error(f'{grammar} does not exist.')
+        if not exists(target_loc+grammar):
+            parser.error(f'{grammar} does not exist in {target_loc}.')
+        else:
+            appended_grammar_paths.append(target_loc+grammar)
+    args.grammar = appended_grammar_paths
 
     options = {}
     for option in args.options:

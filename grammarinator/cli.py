@@ -13,6 +13,7 @@ from inators.imp import import_object
 
 from .tool import FlatBuffersTreeCodec, JsonTreeCodec, PickleTreeCodec
 from argparse import ArgumentParser
+from os.path import exists
 
 logger = logging.getLogger('grammarinator')
 
@@ -59,13 +60,18 @@ def add_tree_format_argument(parser: ArgumentParser):
 def add_iteration_arguments(parser: ArgumentParser):
     parser.add_argument('--iterative', action='store_true', help="Enable iterative mode. The number of test cases generated per iteration will be the same as -n.")
     parser.add_argument('--coverage-goal', type=float, metavar='FLOAT', help='The target code coverage. Need to give a positive number between 0 and 100.')
+    parser.add_argument('--start-filename', type=str, help='The filename of the starting python file for the program located within ./target folder.')
 
-def validate_iteration_arguments(args):
+def validate_iteration_arguments(args, target_loc):
     if not args.iterative: return
     if args.coverage_goal is None:
         raise ValueError("--coverage-goal is required when --iterative is provided.")
     if (args.coverage_goal <= 0 or args.coverage_goal > 100):
         raise ValueError("--coverage-goal must be a positive number less than or equal to 100.")
+    if not args.start_filename:
+        raise ValueError('--start-filename must be provided when --iterative is provided.')
+    if not exists(target_loc+args.start_filename):
+        raise ValueError(f"{args.start_filename} doesn't exist in {target_loc}")
 
 def process_tree_format_argument(args):
     tree_format = tree_formats[args.tree_format]
