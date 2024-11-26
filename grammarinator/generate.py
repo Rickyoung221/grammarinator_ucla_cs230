@@ -27,6 +27,18 @@ import coverage
 import io
 import sys
 import importlib.util
+import shutil
+
+def clear_folder(folder_path):
+    # Ensure the folder exists
+    if os.path.exists(folder_path):
+        for item in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item)
+            # Remove files and directories directly
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)  # Remove directory and its contents
+            else:
+                os.remove(item_path)  # Remove file
 
 
 def restricted_float(value):
@@ -127,6 +139,7 @@ def execute():
     add_iteration_arguments(parser)
 
     # Auxiliary settings.
+    parser.add_argument('--clean-gen', action="store_true", help="remove all previously generated tests in ./target/tests folder.")
     parser.add_argument('-o', '--out', metavar='FILE', default=join(target_loc, 'tests', 'test_%d'),
                         help='output file name pattern (default: %(default)s).')
     parser.add_argument('--stdout', dest='out', action='store_const', const='', default=SUPPRESS,
@@ -150,7 +163,6 @@ def execute():
         args.sys_path = [target_loc]
 
     # validate arguments for iteration mode
-    validate_iteration_arguments(args, target_loc)
 
     init_logging()
     process_log_level_argument(args, logger)
@@ -159,8 +171,12 @@ def execute():
     process_tree_format_argument(args)
     try:
         process_args(args)
+        validate_iteration_arguments(args, target_loc)
     except ValueError as e:
         parser.error(e)
+    
+    if args.clean_gen:
+        clear_folder(join(target_loc, 'tests'))
 
     args.out = args.out.replace('\\', '/')
 
@@ -172,7 +188,7 @@ def execute():
         pre_coverage = 0
 
         # Path to the Python file
-        file_path = target_loc+args.start_filename
+        file_path = join(target_loc, args.start_filename)
         spec = importlib.util.spec_from_file_location("calculator", file_path)
         calculator = importlib.util.module_from_spec(spec)
         original_stdout = sys.stdout

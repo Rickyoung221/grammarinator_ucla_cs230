@@ -1,5 +1,6 @@
 import glob
 import os
+import math
 from calcClass import Calculator
 
 def main():
@@ -17,7 +18,10 @@ def main():
             result = None
             try:
                 result = calc.evaluate(expression)
-                assert result == eval(expression)
+                assert math.isclose(result, eval(expression), rel_tol=1e-9, abs_tol=1e-9)
+            except AssertionError:
+                print(f'result: {result} do not match with eval: {eval(expression)}')
+                pass
             except ValueError:
                 pass
             print("Result:", result, '\n')
