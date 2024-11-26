@@ -12,6 +12,7 @@ import os
 from inators.imp import import_object
 
 from .tool import FlatBuffersTreeCodec, JsonTreeCodec, PickleTreeCodec
+from argparse import ArgumentParser
 
 logger = logging.getLogger('grammarinator')
 
@@ -24,22 +25,22 @@ def import_list(lst):
     return [import_object(item) for item in lst]
 
 
-def add_jobs_argument(parser):
+def add_jobs_argument(parser: ArgumentParser):
     parser.add_argument('-j', '--jobs', metavar='NUM', type=int, default=os.cpu_count(),
                         help='parallelization level (default: number of cpu cores (%(default)d)).')
 
 
-def add_disable_cleanup_argument(parser):
+def add_disable_cleanup_argument(parser: ArgumentParser):
     parser.add_argument('--disable-cleanup', dest='cleanup', default=True, action='store_false',
                         help='disable the removal of intermediate files.')
 
 
-def add_encoding_argument(parser, help):
+def add_encoding_argument(parser: ArgumentParser, help):
     parser.add_argument('--encoding', metavar='NAME', default='utf-8',
                         help=help)
 
 
-def add_encoding_errors_argument(parser):
+def add_encoding_errors_argument(parser: ArgumentParser):
     parser.add_argument('--encoding-errors', metavar='NAME', default='strict',
                         help='encoding error handling scheme (default: %(default)s).')
 
@@ -51,10 +52,20 @@ tree_formats = {
 }
 
 
-def add_tree_format_argument(parser):
+def add_tree_format_argument(parser: ArgumentParser):
     parser.add_argument('--tree-format', metavar='NAME', choices=sorted(tree_formats.keys()), default='pickle',
                         help='format of the saved trees (choices: %(choices)s, default: %(default)s)')
+    
+def add_iteration_arguments(parser: ArgumentParser):
+    parser.add_argument('--iterative', action='store_true', help="Enable iterative mode. The number of test cases generated per iteration will be the same as -n.")
+    parser.add_argument('--coverage-goal', type=float, metavar='FLOAT', help='The target code coverage. Need to give a positive number between 0 and 100.')
 
+def validate_iteration_arguments(args):
+    if not args.iterative: return
+    if args.coverage_goal is None:
+        raise ValueError("--coverage-goal is required when --iterative is provided.")
+    if (args.coverage_goal <= 0 or args.coverage_goal > 100):
+        raise ValueError("--coverage-goal must be a positive number less than or equal to 100.")
 
 def process_tree_format_argument(args):
     tree_format = tree_formats[args.tree_format]

@@ -1,14 +1,16 @@
-in root folder, first run
+# Prereq
+
+`pip install coverage`
+
+in root folder, run
 
 `grammarinator-process ./calculator/calculator.g4 -o ./calculator/`
 
-then run
+# Base Case(no iteration)
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -o ./calculator/tests/test_%d.txt -n 100 --sys-path Calculator/`
+in root folder, run
 
-then install if you don't have coverage
-
-`pip install coverage`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -o ./calculator/tests/test_%d.txt -n 100 --sys-path ./calculator`
 
 then run
 
@@ -17,3 +19,9 @@ then run
 then run
 
 `coverage report -m`
+
+# Iterative coverage increase
+
+in root folder, run
+
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -o ./calculator/tests/test_%d.txt --sys-path ./calculator --iterative --coverage-goal 91 -n 10 -d 10`

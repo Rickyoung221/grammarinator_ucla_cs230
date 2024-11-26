@@ -19,10 +19,14 @@ from os.path import abspath, exists, join
 from inators.arg import add_log_level_argument, add_sys_path_argument, add_sys_recursion_limit_argument, add_version_argument, process_log_level_argument, process_sys_path_argument, process_sys_recursion_limit_argument
 from inators.imp import import_object
 
-from .cli import add_encoding_argument, add_encoding_errors_argument, add_tree_format_argument, add_jobs_argument, import_list, init_logging, logger, process_tree_format_argument
+from .cli import add_encoding_argument, add_encoding_errors_argument, add_tree_format_argument, add_jobs_argument, import_list, init_logging, logger, process_tree_format_argument, add_iteration_arguments, validate_iteration_arguments
 from .pkgdata import __version__
 from .runtime import RuleSize
 from .tool import DefaultGeneratorFactory, DefaultPopulation, GeneratorTool
+import coverage
+import io
+import sys
+import importlib.util
 
 
 def restricted_float(value):
@@ -119,6 +123,7 @@ def execute():
     parser.add_argument('--keep-trees', default=False, action='store_true',
                         help='keep generated tests to participate in further mutations or recombinations (only if population is given).')
     add_tree_format_argument(parser)
+    add_iteration_arguments(parser)
 
     # Auxiliary settings.
     parser.add_argument('-o', '--out', metavar='FILE', default=join(os.getcwd(), 'tests', 'test_%d'),
@@ -140,6 +145,9 @@ def execute():
     add_version_argument(parser, version=__version__)
     args = parser.parse_args()
 
+    # validate arguments for iteration mode
+    validate_iteration_arguments(args)
+
     init_logging()
     process_log_level_argument(args, logger)
     process_sys_path_argument(args)
@@ -150,17 +158,75 @@ def execute():
     except ValueError as e:
         parser.error(e)
 
-    if args.jobs > 1:
-        with Manager() as manager:
-            with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                with Pool(args.jobs) as pool:
-                    for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                        pass
+    args.out = args.out.replace('\\', '/')
+
+    if args.iterative:
+        cov = coverage.Coverage(source=["calculator"], include=["calculator/calculator.py"])
+        dump = io.StringIO()
+        iter = 0
+        stale_iter = 0
+        pre_coverage = 0
+
+        # Path to the Python file
+        file_path = "calculator/calculator.py"
+        spec = importlib.util.spec_from_file_location("calculator", file_path)
+        calculator = importlib.util.module_from_spec(spec)
+        original_stdout = sys.stdout
+
+        folders, filename = split_out_pattern(args.out)
+        while pre_coverage < args.coverage_goal and stale_iter < 10:
+            args.out = f'{folders}iter_{iter}_{filename}'
+            if args.jobs > 1:
+                with Manager() as manager:
+                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                        with Pool(args.jobs) as pool:
+                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                                pass
+                            
+            else:
+                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                    for i in count(0) if args.n == inf else range(args.n):
+                        create_test(generator_tool, i, seed=args.random_seed)
+            cov.start()
+            try:
+                sys.stdout = dump
+                spec.loader.exec_module(calculator)
+                sys.stdout = original_stdout
+            except ValueError:
+                pass
+            cur_coverage = cov.report(file=dump)
+            print(f'at iter {iter}, overall coverage is {cur_coverage:.2f}')
+            if cur_coverage == pre_coverage:
+                stale_iter += 1
+            else:
+                stale_iter = 0
+            pre_coverage = cur_coverage
+            iter += 1
+        cov.stop()
+        cov.report(show_missing=True)
     else:
-        with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-            for i in count(0) if args.n == inf else range(args.n):
-                create_test(generator_tool, i, seed=args.random_seed)
+        if args.jobs > 1:
+            with Manager() as manager:
+                with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                    parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                    with Pool(args.jobs) as pool:
+                        for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                            pass
+        else:
+            with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                for i in count(0) if args.n == inf else range(args.n):
+                    create_test(generator_tool, i, seed=args.random_seed)
+def split_out_pattern(path):
+    idx = path.rfind('/')
+    if idx != -1:
+        first_part = path[:idx + 1]
+        second_part = path[idx + 1:]
+    else:
+        first_part = ''
+        second_part = path
+    return first_part, second_part
+
 
 
 if __name__ == '__main__':

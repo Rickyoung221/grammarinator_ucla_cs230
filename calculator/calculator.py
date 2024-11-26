@@ -73,14 +73,13 @@ class Calculator:
         else:
             raise ValueError("Unsupported operation or node")
 
-# Example usage:
-if __name__ == "__main__":
+def main():
     calc = Calculator()
 
     folder_path = './calculator/tests/'  # Replace with your folder path
 
     # Enumerate all files matching "test_*.txt" pattern
-    for file_path in glob.glob(os.path.join(folder_path, 'test_*.txt')):
+    for file_path in glob.glob(os.path.join(folder_path, '*test_*.txt')):
         with open(file_path, 'r') as file:
             expression = file.read().strip()  # Read and strip whitespace/newlines
             # Replace '^' with '**' for exponentiation
@@ -93,3 +92,5 @@ if __name__ == "__main__":
             except ValueError:
                 pass
             print("Result:", result, '\n')
+
+main()
