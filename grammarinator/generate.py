@@ -146,8 +146,8 @@ def execute():
     add_version_argument(parser, version=__version__)
     args = parser.parse_args()
 
-    if args.sys_path is None:
-        args.sys_path = target_loc
+    if not args.sys_path:
+        args.sys_path = [target_loc]
 
     # validate arguments for iteration mode
     validate_iteration_arguments(args, target_loc)
@@ -200,7 +200,7 @@ def execute():
             except ValueError:
                 pass
             cur_coverage = cov.report(file=dump)
-            print(f'at iter {iter}, overall coverage is {cur_coverage:.2f}')
+            print(f'At iter {iter}, overall coverage is {cur_coverage:.2f}%.')
             if cur_coverage == pre_coverage:
                 stale_iter += 1
             else:

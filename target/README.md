@@ -12,7 +12,7 @@ and
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -o ./calculator/tests/test_%d.txt -n 100 --sys-path ./calculator`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -n 100`
 
 then run
 
@@ -26,4 +26,4 @@ then run
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --sys-path ./target --iterative --coverage-goal 91 --start-filename calculator.py -n 10 -d 10`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --coverage-goal 91 --start-filename calculator.py -n 10 -d 10`
