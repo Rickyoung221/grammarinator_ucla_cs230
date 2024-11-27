@@ -182,7 +182,6 @@ def execute():
     args.out = args.out.replace('\\', '/')
 
     if args.iterative:
-        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py")
         dump = io.StringIO()
         iter = 0
         stale_iter = 0
@@ -195,6 +194,8 @@ def execute():
         original_stdout = sys.stdout
 
         folders, filename = split_out_pattern(args.out)
+        
+        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=True)
         cov.start()
         while pre_coverage < args.coverage_goal and stale_iter < 10:
             args.out = f'{folders}iter_{iter}_{filename}'
@@ -212,13 +213,12 @@ def execute():
                         create_test(generator_tool, i, seed=args.random_seed)
             try:
                 file_list = glob.glob(f'{folders}iter_{iter}_*')
+                print(f"\tExecuting {file_path} with the {len(file_list)} files generated during iter {iter}.")
                 for input_file_path in file_list:
                     with open(input_file_path, "r") as input_file:
                         file_contents = input_file.read().strip()
                         # Simulate command-line arguments
                         sys.argv = [file_path, file_contents]  # Pass file content as argument
-
-                        print(f"\tExecuting {file_path} with input from {input_file_path}")
 
                         # Execute the module
                         sys.stdout = dump
