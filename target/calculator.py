@@ -19,6 +19,12 @@ def main():
             try:
                 result = calc.evaluate(expression)
                 assert math.isclose(result, eval(expression), rel_tol=1e-9, abs_tol=1e-9)
+            except TypeError:
+                try:
+                    assert result == eval(expression)
+                except AssertionError as e:
+                    print(f'result: {result} do not match with eval: {eval(expression)}')
+                    pass
             except AssertionError:
                 print(f'result: {result} do not match with eval: {eval(expression)}')
                 pass
