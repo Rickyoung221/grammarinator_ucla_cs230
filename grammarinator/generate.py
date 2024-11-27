@@ -5,6 +5,7 @@
 # This file may not be copied, modified, or distributed except
 # according to those terms.
 
+import glob
 import json
 import os
 import random
@@ -194,6 +195,7 @@ def execute():
         original_stdout = sys.stdout
 
         folders, filename = split_out_pattern(args.out)
+        cov.start()
         while pre_coverage < args.coverage_goal and stale_iter < 10:
             args.out = f'{folders}iter_{iter}_{filename}'
             if args.jobs > 1:
@@ -203,16 +205,25 @@ def execute():
                         with Pool(args.jobs) as pool:
                             for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
                                 pass
-                            
+
             else:
                 with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
                     for i in count(0) if args.n == inf else range(args.n):
                         create_test(generator_tool, i, seed=args.random_seed)
-            cov.start()
             try:
-                sys.stdout = dump
-                spec.loader.exec_module(calculator)
-                sys.stdout = original_stdout
+                file_list = glob.glob(f'{folders}iter_{iter}_*')
+                for input_file_path in file_list:
+                    with open(input_file_path, "r") as input_file:
+                        file_contents = input_file.read().strip()
+                        # Simulate command-line arguments
+                        sys.argv = [file_path, file_contents]  # Pass file content as argument
+
+                        print(f"\tExecuting {file_path} with input from {input_file_path}")
+
+                        # Execute the module
+                        sys.stdout = dump
+                        spec.loader.exec_module(calculator)
+                        sys.stdout = original_stdout
             except ValueError:
                 pass
             cur_coverage = cov.report(file=dump)

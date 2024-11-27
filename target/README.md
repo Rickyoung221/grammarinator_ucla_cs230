@@ -26,4 +26,4 @@ then run
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py  --coverage-goal 91 -n 55 -d 10 --clean-gen`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py  --coverage-goal 91 -n 2 -d 10 --clean-gen`
