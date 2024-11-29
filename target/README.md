@@ -26,4 +26,4 @@ then run
 
 in root folder, run
 
-`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py  --coverage-goal 91 -n 2 -d 10 --clean-gen`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py -d 10 --clean-gen --max-stale-iter 2 --stmt-cov --coverage-goal 91 -n 2`
