@@ -6,17 +6,17 @@ in root folder, run
 
 and
 
-`grammarinator-process calculator.g4`
+`grammarinator-process texasHoldem.g4`
 
 # Base Case(no iteration)
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -n 100`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r game -d 12 -n 100`
 
 then run
 
-`coverage run ./target/calculator.py`
+`coverage run ./target/texas.py`
 
 then run
 
@@ -26,4 +26,4 @@ then run
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py  --coverage-goal 91 -n 2 -d 10 --clean-gen`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py  --coverage-goal 91 -n 2 -d 10 --clean-gen`
