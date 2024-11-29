@@ -195,9 +195,11 @@ def execute():
 
         folders, filename = split_out_pattern(args.out)
         
-        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=True)
+        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
         cov.start()
-        while pre_coverage < args.coverage_goal and stale_iter < 10:
+
+        max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
+        while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
             args.out = f'{folders}iter_{iter}_{filename}'
             if args.jobs > 1:
                 with Manager() as manager:

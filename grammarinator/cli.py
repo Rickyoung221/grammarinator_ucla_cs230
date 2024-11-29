@@ -61,6 +61,8 @@ def add_iteration_arguments(parser: ArgumentParser):
     parser.add_argument('--iterative', action='store_true', help="Enable iterative mode. The number of test cases generated per iteration will be the same as -n.")
     parser.add_argument('--coverage-goal', type=float, metavar='FLOAT', help='The target code coverage. Need to give a positive number between 0 and 100.')
     parser.add_argument('--start-filename', type=str, help='The filename of the starting python file for the program located within ./target folder.')
+    parser.add_argument('--stmt-cov', action="store_true", help='Enable statement coverage mode.')
+    parser.add_argument('--max-stale-iter', type=int, help="The maximum stale iteration allowed. Default 10. Between 1 and 100.")
 
 def validate_iteration_arguments(args, target_loc):
     if not args.iterative: return
@@ -72,6 +74,8 @@ def validate_iteration_arguments(args, target_loc):
         raise ValueError('--start-filename must be provided when --iterative is provided.')
     if not exists(target_loc+args.start_filename):
         raise ValueError(f"{args.start_filename} doesn't exist in {target_loc}")
+    if args.max_stale_iter is not None and (args.max_stale_iter <= 0 or args.max_stale_iter > 100):
+        raise ValueError('if provided, --max-stale-iter must be a positive number less than or equal to 100.')
 
 def process_tree_format_argument(args):
     tree_format = tree_formats[args.tree_format]
