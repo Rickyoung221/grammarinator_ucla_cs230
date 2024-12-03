@@ -180,23 +180,23 @@ def execute():
         clear_folder(join(target_loc, 'tests'))
 
     args.out = args.out.replace('\\', '/')
+    folders, filename = split_out_pattern(args.out)
+    file_path = join(target_loc, args.start_filename)
+    dump = io.StringIO()
+    # Path to the Python file
+    spec = importlib.util.spec_from_file_location("calculator", file_path)
+    if not spec or not spec.loader:
+        raise Exception('???')
+    calculator = importlib.util.module_from_spec(spec)
+    original_stdout = sys.stdout
+
+    cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
+    cov.start()
 
     if args.iterative:
-        dump = io.StringIO()
         iter = 0
         stale_iter = 0
         pre_coverage = 0
-
-        # Path to the Python file
-        file_path = join(target_loc, args.start_filename)
-        spec = importlib.util.spec_from_file_location("calculator", file_path)
-        calculator = importlib.util.module_from_spec(spec)
-        original_stdout = sys.stdout
-
-        folders, filename = split_out_pattern(args.out)
-        
-        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
-        cov.start()
 
         max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
         while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
@@ -239,6 +239,7 @@ def execute():
         cov.stop()
         cov.report(show_missing=True)
     else:
+        args.out = f'{folders}_{filename}'
         if args.jobs > 1:
             with Manager() as manager:
                 with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
@@ -250,6 +251,24 @@ def execute():
             with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
                 for i in count(0) if args.n == inf else range(args.n):
                     create_test(generator_tool, i, seed=args.random_seed)
+        
+        try:
+            file_list = glob.glob(f'{folders}_*')
+            print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
+            for input_file_path in file_list:
+                with open(input_file_path, "r") as input_file:
+                    file_contents = input_file.read().strip()
+                    # Simulate command-line arguments
+                    sys.argv = [file_path, file_contents]  # Pass file content as argument
+
+                    # Execute the module
+                    sys.stdout = dump
+                    spec.loader.exec_module(calculator)
+                    sys.stdout = original_stdout
+        except ValueError:
+            pass
+        cov.stop()
+        cov.report(show_missing=True)
 def split_out_pattern(path):
     idx = path.rfind('/')
     if idx != -1:
