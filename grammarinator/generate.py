@@ -253,7 +253,7 @@ def execute():
                     create_test(generator_tool, i, seed=args.random_seed)
         
         try:
-            file_list = glob.glob(f'{folders}_*')
+            file_list = glob.glob(f'{folders}*')
             print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
             for input_file_path in file_list:
                 with open(input_file_path, "r") as input_file:
