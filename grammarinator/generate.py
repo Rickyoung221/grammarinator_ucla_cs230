@@ -239,6 +239,7 @@ def execute():
         cov.stop()
         cov.report(show_missing=True)
     else:
+        args.out = f'{folders}_{filename}'
         if args.jobs > 1:
             with Manager() as manager:
                 with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
@@ -253,43 +254,21 @@ def execute():
         
         cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
         max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
-        while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
-            args.out = f'{folders}_{filename}'
-            if args.jobs > 1:
-                with Manager() as manager:
-                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                        with Pool(args.jobs) as pool:
-                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                pass
+        try:
+            file_list = glob.glob(f'{folders}_*')
+            print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
+            for input_file_path in file_list:
+                with open(input_file_path, "r") as input_file:
+                    file_contents = input_file.read().strip()
+                    # Simulate command-line arguments
+                    sys.argv = [file_path, file_contents]  # Pass file content as argument
 
-            else:
-                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                    for i in count(0) if args.n == inf else range(args.n):
-                        create_test(generator_tool, i, seed=args.random_seed)
-            try:
-                file_list = glob.glob(f'{folders}_*')
-                print(f"\tExecuting {file_path} with the {len(file_list)} files generated during iter {iter}.")
-                for input_file_path in file_list:
-                    with open(input_file_path, "r") as input_file:
-                        file_contents = input_file.read().strip()
-                        # Simulate command-line arguments
-                        sys.argv = [file_path, file_contents]  # Pass file content as argument
-
-                        # Execute the module
-                        sys.stdout = dump
-                        spec.loader.exec_module(calculator)
-                        sys.stdout = original_stdout
-            except ValueError:
-                pass
-            cur_coverage = cov.report(file=dump)
-            print(f'At iter {iter}, overall coverage is {cur_coverage:.2f}%.')
-            if cur_coverage == pre_coverage:
-                stale_iter += 1
-            else:
-                stale_iter = 0
-            pre_coverage = cur_coverage
-            iter += 1
+                    # Execute the module
+                    sys.stdout = dump
+                    spec.loader.exec_module(calculator)
+                    sys.stdout = original_stdout
+        except ValueError:
+            pass
         cov.stop()
         cov.report(show_missing=True)
 def split_out_pattern(path):
