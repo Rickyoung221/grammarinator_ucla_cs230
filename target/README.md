@@ -12,7 +12,7 @@ and
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation -d 12 -n 100`
+`grammarinator-generate CalculatorGenerator.CalculatorGenerator --start-filename calculator.py -r equation -d 12 -n 100`
 
 then run
 
