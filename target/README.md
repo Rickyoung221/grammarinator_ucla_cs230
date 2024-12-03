@@ -12,7 +12,7 @@ and
 
 in root folder, run
 
-`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game -d 12 -n 100`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator --start-filename texas.py -r game -d 12 -n 100`
 
 then run
 
