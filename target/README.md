@@ -14,14 +14,6 @@ in root folder, run
 
 `grammarinator-generate CalculatorGenerator.CalculatorGenerator --start-filename calculator.py -r equation -d 12 -n 100`
 
-then run
-
-`coverage run ./target/calculator.py`
-
-then run
-
-`coverage report -m`
-
 # Iterative coverage increase
 
 in root folder, run
