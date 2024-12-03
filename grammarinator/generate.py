@@ -190,13 +190,13 @@ def execute():
     calculator = importlib.util.module_from_spec(spec)
     original_stdout = sys.stdout
 
+    cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
+    cov.start()
+
     if args.iterative:
         iter = 0
         stale_iter = 0
         pre_coverage = 0
-
-        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
-        cov.start()
 
         max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
         while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
@@ -252,8 +252,6 @@ def execute():
                 for i in count(0) if args.n == inf else range(args.n):
                     create_test(generator_tool, i, seed=args.random_seed)
         
-        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
-        max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
         try:
             file_list = glob.glob(f'{folders}_*')
             print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
