@@ -151,7 +151,7 @@ def execute():
                         help='initialize random number generator with fixed seed (not set by default).')
     parser.add_argument('--dry-run', default=False, action='store_true',
                         help='generate tests without writing them to file or printing to stdout (do not keep generated tests in population either)')
-    parser.add_argument('--no-gen', default=False, help="Don't generate any new test cases.")
+    parser.add_argument('--no-gen', default=False, action='store_true', help="Don't generate any new test cases.")
     add_encoding_argument(parser, help='output file encoding (default: %(default)s).')
     add_encoding_errors_argument(parser)
     add_jobs_argument(parser)
