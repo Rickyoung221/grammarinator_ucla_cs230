@@ -18,4 +18,4 @@ in root folder, run
 
 in root folder, run
 
-`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py -d 10 --clean-gen --max-stale-iter 2 --coverage-goal 96 -n 2`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py -d 10 --clean-gen --max-stale-iter 2 --stmt-cov --coverage-goal 96 -n 2`
