@@ -14,14 +14,6 @@ in root folder, run
 
 `grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator --start-filename texas.py -r game -d 12 -n 100`
 
-then run
-
-`coverage run ./target/texas.py`
-
-then run
-
-`coverage report -m`
-
 # Iterative coverage increase
 
 in root folder, run
