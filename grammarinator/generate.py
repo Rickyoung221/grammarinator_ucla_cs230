@@ -151,6 +151,7 @@ def execute():
                         help='initialize random number generator with fixed seed (not set by default).')
     parser.add_argument('--dry-run', default=False, action='store_true',
                         help='generate tests without writing them to file or printing to stdout (do not keep generated tests in population either)')
+    parser.add_argument('--no-gen', default=False, action='store_true', help="Don't generate any new test cases.")
     add_encoding_argument(parser, help='output file encoding (default: %(default)s).')
     add_encoding_errors_argument(parser)
     add_jobs_argument(parser)
@@ -201,18 +202,19 @@ def execute():
         max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
         while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
             args.out = f'{folders}iter_{iter}_{filename}'
-            if args.jobs > 1:
-                with Manager() as manager:
-                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                        with Pool(args.jobs) as pool:
-                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                pass
+            if not args.no_gen:
+                if args.jobs > 1:
+                    with Manager() as manager:
+                        with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                            parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                            with Pool(args.jobs) as pool:
+                                for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                                    pass
 
-            else:
-                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                    for i in count(0) if args.n == inf else range(args.n):
-                        create_test(generator_tool, i, seed=args.random_seed)
+                else:
+                    with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                        for i in count(0) if args.n == inf else range(args.n):
+                            create_test(generator_tool, i, seed=args.random_seed)
             try:
                 file_list = glob.glob(f'{folders}iter_{iter}_*')
                 print(f"\tExecuting {file_path} with the {len(file_list)} files generated during iter {iter}.")
@@ -240,17 +242,18 @@ def execute():
         cov.report(show_missing=True)
     else:
         args.out = f'{folders}_{filename}'
-        if args.jobs > 1:
-            with Manager() as manager:
-                with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                    parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                    with Pool(args.jobs) as pool:
-                        for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                            pass
-        else:
-            with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                for i in count(0) if args.n == inf else range(args.n):
-                    create_test(generator_tool, i, seed=args.random_seed)
+        if not args.no_gen:
+            if args.jobs > 1:
+                with Manager() as manager:
+                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                        with Pool(args.jobs) as pool:
+                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                                pass
+            else:
+                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                    for i in count(0) if args.n == inf else range(args.n):
+                        create_test(generator_tool, i, seed=args.random_seed)
         
         try:
             file_list = glob.glob(f'{folders}*')
