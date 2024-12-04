@@ -222,7 +222,7 @@ def execute():
                     with open(input_file_path, "r") as input_file:
                         file_contents = input_file.read().strip()
                         # Simulate command-line arguments
-                        sys.argv = [file_path, file_contents]  # Pass file content as argument
+                        sys.argv = [file_path, input_file_path]  # Pass file content as argument
 
                         # Execute the module
                         sys.stdout = dump

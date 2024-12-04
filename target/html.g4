@@ -13,11 +13,11 @@ htmlHead
     ;
 
 htmlBody
-    :   '<body>' mainWrapper '</body>'
+    :   '<body>' mainWrapper SCRIPT?'</body>'
     ;
 
 mainWrapper
-    :   '<main>' recursiveContent recursiveContent recursiveContent recursiveContent* '</main>' | recursiveContent recursiveContent recursiveContent recursiveContent*
+    :   '<main>' recursiveContent recursiveContent recursiveContent recursiveContent* SCRIPT?'</main>' | recursiveContent recursiveContent recursiveContent recursiveContent* SCRIPT?
     ;
 
 recursiveContent
@@ -25,19 +25,19 @@ recursiveContent
     ;
 
 divWrapper
-    :   '<div 'INLINE_STYLE? FLEX_CLASS?'>' recursiveContent recursiveContent* '</div>'
+    :   '<div 'INLINE_STYLE? FLEX_CLASS?'>' recursiveContent recursiveContent* SCRIPT?'</div>'
     ;
 
 sectionWrapper
-    :   '<section 'INLINE_STYLE?'>' recursiveContent recursiveContent* '</section>'
+    :   '<section 'INLINE_STYLE?'>' recursiveContent recursiveContent* SCRIPT?'</section>'
     ;
 
 headerWrapper
-    :   '<header 'INLINE_STYLE?'>' recursiveContent recursiveContent* '</header>'
+    :   '<header 'INLINE_STYLE?'>' recursiveContent recursiveContent* SCRIPT?'</header>'
     ;
 
 footerWrapper
-    :   '<footer 'INLINE_STYLE?'>' recursiveContent recursiveContent* '</footer>'
+    :   '<footer 'INLINE_STYLE?'>' recursiveContent recursiveContent* SCRIPT?'</footer>'
     ;
 
 
@@ -48,7 +48,7 @@ CLOSE:              '>';
 OPEN_SLASH:         '</';
 SLASH_CLOSE:        '/>';
 EQUALS:             '=';
-SCRIPT:             '<script>console.log("Inline script executed");</script>';
+SCRIPT:             '<script>console.log("'RANDOM_TEXT'");</script>';
 GLOBAL_STYLE:       '<style>body {margin: 0; font-family: Arial, sans-serif;background-color: #f4f4f4;}</style>';
 RANDOM_TEXT:        [a-zA-Z] [a-zA-Z0-9] [a-zA-Z0-9] [a-zA-Z0-9]*;
 PX:                 [1-9] [0-9]?'px';

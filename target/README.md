@@ -4,7 +4,11 @@ in root folder, run
 
 `pip install .`
 
-and
+then go to `./target/xhtml2pdf` and run
+
+`pip install -e .`
+
+then go back to root folder and run
 
 `grammarinator-process html.g4`
 
@@ -18,4 +22,4 @@ in root folder, run
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --coverage-goal 91 -n 2 -d 10 --clean-gen`
+`grammarinator-generate htmlGenerator.htmlGenerator -r html --iterative --start-filename generate_pdf.py --coverage-goal 91 -n 2 -d 10 --clean-gen`

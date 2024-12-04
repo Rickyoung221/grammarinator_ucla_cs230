@@ -71,6 +71,12 @@ class htmlGenerator(Generator):
             current = rule.current
             self._reserve(4, self.T__6, parent=current)
             self._reserve(1, self.mainWrapper, parent=current)
+            with QuantifierContext(rule, 0, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant0:
+                while quant0():
+                    with QuantifiedContext(rule):
+                        current = rule.current
+                        self.SCRIPT(parent=current)
+            current = rule.current
             self.T__7(parent=current)
             return current
 
@@ -91,16 +97,28 @@ class htmlGenerator(Generator):
                                 current = rule.current
                                 self.recursiveContent(parent=current)
                     current = rule.current
+                    with QuantifierContext(rule, 1, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant1:
+                        while quant1():
+                            with QuantifiedContext(rule):
+                                current = rule.current
+                                self.SCRIPT(parent=current)
+                    current = rule.current
                     self.T__9(parent=current)
                 elif choice0 == 1:
                     self._reserve(2, self.recursiveContent, parent=current)
                     self._reserve(1, self.recursiveContent, parent=current)
                     self.recursiveContent(parent=current)
-                    with QuantifierContext(rule, 1, 0, inf, htmlGenerator._quant_sizes[6], 0) as quant1:
-                        while quant1():
+                    with QuantifierContext(rule, 2, 0, inf, htmlGenerator._quant_sizes[6], 0) as quant2:
+                        while quant2():
                             with QuantifiedContext(rule):
                                 current = rule.current
                                 self.recursiveContent(parent=current)
+                    current = rule.current
+                    with QuantifierContext(rule, 3, 0, 1, htmlGenerator._quant_sizes[1], 0) as quant3:
+                        while quant3():
+                            with QuantifiedContext(rule):
+                                current = rule.current
+                                self.SCRIPT(parent=current)
                     current = rule.current
             current = rule.current
             return current
@@ -138,6 +156,12 @@ class htmlGenerator(Generator):
                         current = rule.current
                         self.recursiveContent(parent=current)
             current = rule.current
+            with QuantifierContext(rule, 3, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant3:
+                while quant3():
+                    with QuantifiedContext(rule):
+                        current = rule.current
+                        self.SCRIPT(parent=current)
+            current = rule.current
             self.T__11(parent=current)
             return current
 
@@ -158,6 +182,12 @@ class htmlGenerator(Generator):
                     with QuantifiedContext(rule):
                         current = rule.current
                         self.recursiveContent(parent=current)
+            current = rule.current
+            with QuantifierContext(rule, 2, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant2:
+                while quant2():
+                    with QuantifiedContext(rule):
+                        current = rule.current
+                        self.SCRIPT(parent=current)
             current = rule.current
             self.T__13(parent=current)
             return current
@@ -180,6 +210,12 @@ class htmlGenerator(Generator):
                         current = rule.current
                         self.recursiveContent(parent=current)
             current = rule.current
+            with QuantifierContext(rule, 2, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant2:
+                while quant2():
+                    with QuantifiedContext(rule):
+                        current = rule.current
+                        self.SCRIPT(parent=current)
+            current = rule.current
             self.T__15(parent=current)
             return current
 
@@ -200,6 +236,12 @@ class htmlGenerator(Generator):
                     with QuantifiedContext(rule):
                         current = rule.current
                         self.recursiveContent(parent=current)
+            current = rule.current
+            with QuantifierContext(rule, 2, 0, 1, htmlGenerator._quant_sizes[1], 1) as quant2:
+                while quant2():
+                    with QuantifiedContext(rule):
+                        current = rule.current
+                        self.SCRIPT(parent=current)
             current = rule.current
             self.T__17(parent=current)
             return current
@@ -237,7 +279,9 @@ class htmlGenerator(Generator):
     def SCRIPT(self, parent=None):
         with UnlexerRuleContext(self, 'SCRIPT', parent) as rule:
             current = rule.current
-            current.src += '<script>console.log("Inline script executed");</script>'
+            current.src += '<script>console.log("'
+            self.RANDOM_TEXT(parent=current)
+            current.src += '");</script>'
             return current
 
     def GLOBAL_STYLE(self, parent=None):
@@ -585,7 +629,7 @@ class htmlGenerator(Generator):
 
     _default_rule = html
 
-    _immutable_rules = ('CLOSE', 'EQUALS', 'FLEX_CLASS', 'GLOBAL_STYLE', 'OPEN', 'OPEN_SLASH', 'SCRIPT', 'SLASH_CLOSE', 'T__0', 'T__1', 'T__10', 'T__11', 'T__12', 'T__13', 'T__14', 'T__15', 'T__16', 'T__17', 'T__2', 'T__3', 'T__4', 'T__5', 'T__6', 'T__7', 'T__8', 'T__9')
+    _immutable_rules = ('CLOSE', 'EQUALS', 'FLEX_CLASS', 'GLOBAL_STYLE', 'OPEN', 'OPEN_SLASH', 'SLASH_CLOSE', 'T__0', 'T__1', 'T__10', 'T__11', 'T__12', 'T__13', 'T__14', 'T__15', 'T__16', 'T__17', 'T__2', 'T__3', 'T__4', 'T__5', 'T__6', 'T__7', 'T__8', 'T__9')
 
     _rule_sizes = {
         'html': RuleSize(5, 7),
@@ -603,7 +647,7 @@ class htmlGenerator(Generator):
         'OPEN_SLASH': RuleSize(0, 0),
         'SLASH_CLOSE': RuleSize(0, 0),
         'EQUALS': RuleSize(0, 0),
-        'SCRIPT': RuleSize(0, 0),
+        'SCRIPT': RuleSize(1, 1),
         'GLOBAL_STYLE': RuleSize(0, 0),
         'RANDOM_TEXT': RuleSize(0, 0),
         'PX': RuleSize(0, 0),
