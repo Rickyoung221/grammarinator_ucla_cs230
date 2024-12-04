@@ -185,10 +185,10 @@ def execute():
     file_path = join(target_loc, args.start_filename)
     dump = io.StringIO()
     # Path to the Python file
-    spec = importlib.util.spec_from_file_location("calculator", file_path)
+    spec = importlib.util.spec_from_file_location("target", file_path)
     if not spec or not spec.loader:
         raise Exception('???')
-    calculator = importlib.util.module_from_spec(spec)
+    target = importlib.util.module_from_spec(spec)
     original_stdout = sys.stdout
 
     cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
@@ -226,7 +226,7 @@ def execute():
 
                         # Execute the module
                         sys.stdout = dump
-                        spec.loader.exec_module(calculator)
+                        spec.loader.exec_module(target)
                         sys.stdout = original_stdout
             except ValueError:
                 pass
@@ -266,7 +266,7 @@ def execute():
 
                     # Execute the module
                     sys.stdout = dump
-                    spec.loader.exec_module(calculator)
+                    spec.loader.exec_module(target)
                     sys.stdout = original_stdout
         except ValueError:
             pass
