@@ -6,13 +6,13 @@ in root folder, run
 
 and
 
-`grammarinator-process calculator.g4`
+`grammarinator-process html.g4`
 
 # Base Case(no iteration)
 
 in root folder, run
 
-`grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --start-filename calculator.py -d 12 -n 100`
+`grammarinator-generate htmlGenerator.htmlGenerator -r html --start-filename generate_pdf.py --clean-gen --stmt-cov -d 12 -n 1`
 
 # Iterative coverage increase
 

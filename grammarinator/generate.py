@@ -141,7 +141,7 @@ def execute():
 
     # Auxiliary settings.
     parser.add_argument('--clean-gen', action="store_true", help="remove all previously generated tests in ./target/tests folder.")
-    parser.add_argument('-o', '--out', metavar='FILE', default=join(target_loc, 'tests', 'test_%d'),
+    parser.add_argument('-o', '--out', metavar='FILE', default=join(target_loc, 'tests', 'test_%d.html'),
                         help='output file name pattern (default: %(default)s).')
     parser.add_argument('--stdout', dest='out', action='store_const', const='', default=SUPPRESS,
                         help='print test cases to stdout (alias for --out=%(const)r)')
@@ -185,10 +185,10 @@ def execute():
     file_path = join(target_loc, args.start_filename)
     dump = io.StringIO()
     # Path to the Python file
-    spec = importlib.util.spec_from_file_location("calculator", file_path)
+    spec = importlib.util.spec_from_file_location("target", file_path)
     if not spec or not spec.loader:
         raise Exception('???')
-    calculator = importlib.util.module_from_spec(spec)
+    target = importlib.util.module_from_spec(spec)
     original_stdout = sys.stdout
 
     cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
@@ -226,7 +226,7 @@ def execute():
 
                         # Execute the module
                         sys.stdout = dump
-                        spec.loader.exec_module(calculator)
+                        spec.loader.exec_module(target)
                         sys.stdout = original_stdout
             except ValueError:
                 pass
@@ -262,11 +262,11 @@ def execute():
                 with open(input_file_path, "r") as input_file:
                     file_contents = input_file.read().strip()
                     # Simulate command-line arguments
-                    sys.argv = [file_path, file_contents]  # Pass file content as argument
+                    sys.argv = [file_path, input_file_path]  # Pass file content as argument
 
                     # Execute the module
                     sys.stdout = dump
-                    spec.loader.exec_module(calculator)
+                    spec.loader.exec_module(target)
                     sys.stdout = original_stdout
         except ValueError:
             pass
