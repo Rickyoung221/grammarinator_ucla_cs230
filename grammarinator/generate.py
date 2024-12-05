@@ -82,7 +82,7 @@ def get_weights(args, pre_coverage, cur_coverage):
     if pre_coverage == 0:
         return {}
     else:
-        temperature = max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
+        temperature = 1 - max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
     
     with open('target/config/trace.json', 'r') as f:
         trace = json.load(f)
