@@ -25,49 +25,65 @@ class Calculator:
             float: The result of the evaluated expression.
         """
         try:
-            # Parse the expression into an Abstract Syntax Tree (AST)
             parsed_expr = ast.parse(expression, mode='eval').body
             return self._evaluate_ast(parsed_expr)
         except ZeroDivisionError:
             print("Error: Division by zero is not allowed.")
-            raise ValueError()
+            raise ValueError("Division by zero is not allowed.")
         except (SyntaxError, ValueError) as e:
             print(f"Invalid expression: {expression}, Error: {str(e)}")
-            raise ValueError()
+            raise ValueError("Invalid expression")
 
     def _evaluate_ast(self, node) -> float:
-        """
-        Recursively evaluates an AST node.
-
-        Parameters:
-            node: The root node of the AST to evaluate.
-
-        Returns:
-            float: The evaluated result of the AST node.
-        """
-        if isinstance(node, ast.Constant):  # For Python 3.8 and above
+        if isinstance(node, ast.Constant):
             return node.value
         elif isinstance(node, ast.BinOp):
-            left = self._evaluate_ast(node.left)
-            right = self._evaluate_ast(node.right)
-            op_type = type(node.op)
-            if op_type in operators:
-                # Ensure exponentiation handles float values
-                if op_type is ast.Pow:
-                    try:
-                        return operators[op_type](float(left), float(right))
-                    except OverflowError as e:
-                        print(f"Error: {e}")
-                        raise ValueError()
-                try:
-                    return operators[op_type](left, right)
-                except TypeError as e:
-                    print(f"Error: {e}")
-                    raise ValueError()
-            else:
-                raise ValueError("Unsupported operation")
-        elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-            operand = self._evaluate_ast(node.operand)
-            return operators[ast.USub](operand)
+            return self._evaluate_binop(node)
+        elif isinstance(node, ast.UnaryOp):
+            return self._evaluate_unaryop(node)
         else:
-            raise ValueError("Unsupported operation or node")
+            raise ValueError("Unsupported node type")
+
+    def _evaluate_binop(self, node):
+        left = self._evaluate_ast(node.left)
+        right = self._evaluate_ast(node.right)
+        operation = {
+            ast.Add: self._add,
+            ast.Sub: self._subtract,
+            ast.Mult: self._multiply,
+            ast.Div: self._divide,
+            ast.Pow: self._power,
+            ast.Mod: self._modulus
+        }.get(type(node.op), self._unsupported_operation)
+        return operation(left, right)
+
+    def _evaluate_unaryop(self, node):
+        if isinstance(node.op, ast.USub):
+            operand = self._evaluate_ast(node.operand)
+            return self._negate(operand)
+        else:
+            raise ValueError("Unsupported unary operation")
+
+    def _add(self, left, right):
+        return left + right
+
+    def _subtract(self, left, right):
+        return left - right
+
+    def _multiply(self, left, right):
+        return left * right
+
+    def _divide(self, left, right):
+        return left / right
+
+    def _power(self, left, right):
+        return pow(left, right)
+
+    def _modulus(self, left, right):
+        return left % right
+
+    def _negate(self, value):
+        return -value
+
+    def _unsupported_operation(self, *args):
+        raise ValueError("Unsupported operation")

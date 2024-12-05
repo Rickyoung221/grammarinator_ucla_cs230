@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import random
+import uuid
 
 from argparse import ArgumentParser, ArgumentTypeError, SUPPRESS
 from functools import partial
@@ -124,7 +125,6 @@ def execute():
                              'after it has been chosen (interval: (0, 1]; default: %(default)f).')
     parser.add_argument('-w', '--weights', metavar='FILE',
                         help='JSON file defining custom weights for alternatives.')
-
     # Evolutionary settings.
     parser.add_argument('--population', metavar='DIR',
                         help='directory of grammarinator tree pool.')
@@ -151,10 +151,13 @@ def execute():
                         help='initialize random number generator with fixed seed (not set by default).')
     parser.add_argument('--dry-run', default=False, action='store_true',
                         help='generate tests without writing them to file or printing to stdout (do not keep generated tests in population either)')
-    parser.add_argument('--no-gen', default=False, action='store_true', help="Don't generate any new test cases.")
     add_encoding_argument(parser, help='output file encoding (default: %(default)s).')
     add_encoding_errors_argument(parser)
     add_jobs_argument(parser)
+    parser.add_argument('-u', '--update', default=False, action='store_true',
+                help='JSON file defining custom weights for alternatives and updating the existing weights.')
+    parser.add_argument('--fix-iter', type=int, metavar='NUM')
+
     add_sys_path_argument(parser)
     add_sys_recursion_limit_argument(parser)
     add_log_level_argument(parser, short_alias=())
@@ -181,42 +184,50 @@ def execute():
         clear_folder(join(target_loc, 'tests'))
 
     args.out = args.out.replace('\\', '/')
-    folders, filename = split_out_pattern(args.out)
-    file_path = join(target_loc, args.start_filename)
-    dump = io.StringIO()
-    # Path to the Python file
-    spec = importlib.util.spec_from_file_location("calculator", file_path)
-    if not spec or not spec.loader:
-        raise Exception('???')
-    calculator = importlib.util.module_from_spec(spec)
-    original_stdout = sys.stdout
-
-    cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
-    cov.start()
 
     if args.iterative:
-        iter = 0
-        stale_iter = 0
+        dump = io.StringIO()
         pre_coverage = 0
 
-        max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
-        while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
-            args.out = f'{folders}iter_{iter}_{filename}'
-            if not args.no_gen:
-                if args.jobs > 1:
-                    with Manager() as manager:
-                        with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                            parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                            with Pool(args.jobs) as pool:
-                                for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                    pass
+        # Path to the Python file
+        file_path = join(target_loc, args.start_filename)
+        spec = importlib.util.spec_from_file_location("calculator", file_path)
+        calculator = importlib.util.module_from_spec(spec)
+        original_stdout = sys.stdout
 
-                else:
-                    with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                        for i in count(0) if args.n == inf else range(args.n):
-                            create_test(generator_tool, i, seed=args.random_seed)
+        folders, filename = split_out_pattern(args.out)
+        
+        cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
+        cov.start()
+
+        
+        iter = 0
+        stale_iter = 0
+        max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
+        def iter_condition(iter: int, pre_coverage: float, stale_iter: int) -> bool:
+            fix_iter = args.fix_iter
+            if fix_iter:
+                return iter < fix_iter
+            else:
+                return (pre_coverage < args.coverage_goal and stale_iter < max_stale_iter)
+        while iter_condition(iter, pre_coverage, stale_iter):
+            id = uuid.uuid4()
+            print(id)
+            args.out = f'{folders}{id}'
+            if args.jobs > 1:
+                with Manager() as manager:
+                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                        with Pool(args.jobs) as pool:
+                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                                pass
+
+            else:
+                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                    for i in count(0) if args.n == inf else range(args.n):
+                        create_test(generator_tool, i, seed=args.random_seed)
             try:
-                file_list = glob.glob(f'{folders}iter_{iter}_*')
+                file_list = glob.glob(f'{folders}/*')
                 print(f"\tExecuting {file_path} with the {len(file_list)} files generated during iter {iter}.")
                 for input_file_path in file_list:
                     with open(input_file_path, "r") as input_file:
@@ -241,37 +252,17 @@ def execute():
         cov.stop()
         cov.report(show_missing=True)
     else:
-        args.out = f'{folders}_{filename}'
-        if not args.no_gen:
-            if args.jobs > 1:
-                with Manager() as manager:
-                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                        with Pool(args.jobs) as pool:
-                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                pass
-            else:
-                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                    for i in count(0) if args.n == inf else range(args.n):
-                        create_test(generator_tool, i, seed=args.random_seed)
-        
-        try:
-            file_list = glob.glob(f'{folders}*')
-            print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
-            for input_file_path in file_list:
-                with open(input_file_path, "r") as input_file:
-                    file_contents = input_file.read().strip()
-                    # Simulate command-line arguments
-                    sys.argv = [file_path, file_contents]  # Pass file content as argument
-
-                    # Execute the module
-                    sys.stdout = dump
-                    spec.loader.exec_module(calculator)
-                    sys.stdout = original_stdout
-        except ValueError:
-            pass
-        cov.stop()
-        cov.report(show_missing=True)
+        if args.jobs > 1:
+            with Manager() as manager:
+                with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                    parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                    with Pool(args.jobs) as pool:
+                        for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                            pass
+        else:
+            with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
+                for i in count(0) if args.n == inf else range(args.n):
+                    create_test(generator_tool, i, seed=args.random_seed)
 def split_out_pattern(path):
     idx = path.rfind('/')
     if idx != -1:
