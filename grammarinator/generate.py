@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import random
+import pprint
 
 from argparse import ArgumentParser, ArgumentTypeError, SUPPRESS
 from functools import partial
@@ -19,6 +20,7 @@ from os.path import abspath, exists, join
 
 from inators.arg import add_log_level_argument, add_sys_path_argument, add_sys_recursion_limit_argument, add_version_argument, process_log_level_argument, process_sys_path_argument, process_sys_recursion_limit_argument
 from inators.imp import import_object
+import numpy as np
 
 from .cli import add_encoding_argument, add_encoding_errors_argument, add_tree_format_argument, add_jobs_argument, import_list, init_logging, logger, process_tree_format_argument, add_iteration_arguments, validate_iteration_arguments
 from .pkgdata import __version__
@@ -56,20 +58,6 @@ def process_args(args):
     args.transformer = import_list(args.transformer)
     args.serializer = import_object(args.serializer) if args.serializer else None
 
-    if args.weights:
-        if not exists(args.weights):
-            raise ValueError('Custom weights should point to an existing JSON file.')
-
-        with open(args.weights, 'r') as f:
-            weights = {}
-            for rule, alts in json.load(f).items():
-                for alternation_idx, alternatives in alts.items():
-                    for alternative_idx, w in alternatives.items():
-                        weights[(rule, int(alternation_idx), int(alternative_idx))] = w
-            args.weights = weights
-    else:
-        args.weights = {}
-
     if args.population:
         args.population = abspath(args.population)
 
@@ -88,6 +76,126 @@ def generator_tool_helper(args, weights, lock):
                          transformers=args.transformer, serializer=args.serializer,
                          cleanup=False, encoding=args.encoding, errors=args.encoding_errors, dry_run=args.dry_run)
 
+def get_weights(args, pre_coverage, cur_coverage):
+    if not args.iterative or not args.weighted_gen:
+        return {}
+    if pre_coverage == 0:
+        return {}
+    temperature = max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
+    if not args.positive_temp_softmax:
+        temperature = 1-temperature
+    with open('target/config/trace.json', 'r') as f:
+        trace = json.load(f)
+        raw_weights = calc_weights(trace, temperature=temperature)
+        weights = {}
+        for rule, alts in raw_weights.items():
+            for alternation_idx, alternatives in alts.items():
+                for alternative_idx, w in alternatives.items():
+                    alts: dict = weights.setdefault(rule, {})
+                    alternatives: dict = alts.setdefault(alternation_idx, {})
+                    alternatives.setdefault(alternative_idx, w)
+        if args.show_trace:
+            print(f'cur: {cur_coverage:.2f}, pre: {pre_coverage:.2f}')
+            print(f'improve is {cur_coverage - pre_coverage:.2f}')
+            print(f'temperature is:{temperature :.2f}')
+            print('trace is:')
+            pprint.pprint(trace, compact=True, indent=2)
+            print('weights are:')
+            pprint.pprint(convert_to_float(weights), compact=True, indent=2)
+        return weights
+
+def convert_to_float(data):
+    """
+    Recursively converts all np.float64 values in a nested dictionary to native Python float.
+    """
+    if isinstance(data, dict):
+        return {k: convert_to_float(v) for k, v in data.items()}
+    elif isinstance(data, np.float64):
+        return round(float(data), 2)
+    elif isinstance(data, list):
+        return [convert_to_float(v) for v in data]
+    else:
+        return data
+
+def calc_weights(trace, temperature=1.0):
+    """
+    Apply softmax-based scaling with decay to the weights in a nested JSON structure.
+    """
+    # Traverse the JSON and apply scaling with decay
+    weights = {}
+    for key, sub_dict in trace.items():
+        for sub_key, counts in sub_dict.items():
+            weights.setdefault(key, {})
+            weights[key][sub_key] = softmax_scaling(counts, temperature)
+    return weights
+
+def softmax_scaling(counts, temperature, alpha=0.5, beta=0.2, decay_factor=1.0, threshold=0.1):
+    """
+    Temperature-modulated softmax scaling with decay.
+
+    Parameters:
+    - counts (dict): Original counts for weights.
+    - alpha (float): Controls sharpness of the inverse scaling.
+    - beta (float): Controls sharpness of the softmax scaling.
+    - decay_factor (float): Decays the counts before scaling.
+    - temperature (float): Controls the interpolation:
+        - High temperature (> threshold): Approaches standard softmax.
+        - Near threshold: Flattens the distribution.
+        - Low temperature (< threshold): Approaches inverse softmax.
+
+    Returns:
+    - scaled_weights (dict): A dictionary of scaled probabilities.
+    """
+    # Decay weights
+    decayed_weights = {k: v * decay_factor for k, v in counts.items()}
+    mean = np.mean(list(decayed_weights.values()))
+    
+    # Stabilized softmax with beta
+    softmax_exponents = {k: beta * (v - mean) for k, v in decayed_weights.items()}
+    max_softmax_val = max(softmax_exponents.values())
+    softmax_weights = {
+        k: np.exp(softmax_exponents[k] - max_softmax_val) for k in decayed_weights
+    }
+    total_softmax = sum(softmax_weights.values())
+    softmax_scaled = {k: v / total_softmax for k, v in softmax_weights.items()}
+    
+    # Stabilized inverse softmax with alpha
+    inverse_exponents = {k: -alpha * (v - mean) for k, v in decayed_weights.items()}
+    max_inverse_val = max(inverse_exponents.values())
+    inverse_softmax_weights = {
+        k: np.exp(inverse_exponents[k] - max_inverse_val) for k in decayed_weights
+    }
+    total_inverse_softmax = sum(inverse_softmax_weights.values())
+    inverse_softmax_scaled = {
+        k: v / total_inverse_softmax for k, v in inverse_softmax_weights.items()
+    }
+    
+    # Flat distribution
+    flat_distribution = {k: 1 / len(counts) for k in counts}
+    
+    # Interpolation between distributions
+    if temperature > threshold:
+        # Interpolate between softmax and flat distribution
+        weight_factor = threshold / temperature  # Decreases as temperature increases
+        scaled_weights = {
+            k: (1 - weight_factor) * softmax_scaled[k] + weight_factor * flat_distribution[k]
+            for k in counts
+        }
+    else:
+        # Interpolate between inverse softmax and flat distribution
+        weight_factor = temperature / threshold  # Decreases as temperature decreases
+        scaled_weights = {
+            k: (1 - weight_factor) * inverse_softmax_scaled[k] + weight_factor * flat_distribution[k]
+            for k in counts
+        }
+    
+    return scaled_weights
+
+def reset_trace():
+    with open("target/config/trace.json", 'w') as f:
+        json.dump({}, f, indent=2) 
+        f.flush()  # Flush the internal buffer to the OS buffer
+        os.fsync(f.fileno())  # Flush the OS buffer to the disk
 
 def create_test(generator_tool, index, *, seed):
     if seed:
@@ -122,8 +230,8 @@ def execute():
     parser.add_argument('-c', '--cooldown', default=1.0, type=restricted_float, metavar='NUM',
                         help='cool-down factor defines how much the probability of an alternative should decrease '
                              'after it has been chosen (interval: (0, 1]; default: %(default)f).')
-    parser.add_argument('-w', '--weights', metavar='FILE',
-                        help='JSON file defining custom weights for alternatives.')
+    parser.add_argument('-w', '--weighted-gen', action='store_true',
+                        help='enable weighted generation for alternatives.')
 
     # Evolutionary settings.
     parser.add_argument('--population', metavar='DIR',
@@ -134,7 +242,7 @@ def execute():
                         help='disable test generation by mutation (disabled by default if no population is given).')
     parser.add_argument('--no-recombine', dest='recombine', default=True, action='store_false',
                         help='disable test generation by recombination (disabled by default if no population is given).')
-    parser.add_argument('--keep-trees', default=False, action='store_true',
+    parser.add_argument('--keep-trees', action='store_true',
                         help='keep generated tests to participate in further mutations or recombinations (only if population is given).')
     add_tree_format_argument(parser)
     add_iteration_arguments(parser)
@@ -149,9 +257,8 @@ def execute():
                         help='number of tests to generate, \'inf\' for continuous generation (default: %(default)s).')
     parser.add_argument('--random-seed', type=int, metavar='NUM',
                         help='initialize random number generator with fixed seed (not set by default).')
-    parser.add_argument('--dry-run', default=False, action='store_true',
+    parser.add_argument('--dry-run', action='store_true',
                         help='generate tests without writing them to file or printing to stdout (do not keep generated tests in population either)')
-    parser.add_argument('--no-gen', default=False, action='store_true', help="Don't generate any new test cases.")
     add_encoding_argument(parser, help='output file encoding (default: %(default)s).')
     add_encoding_errors_argument(parser)
     add_jobs_argument(parser)
@@ -179,6 +286,7 @@ def execute():
     
     if args.clean_gen:
         clear_folder(join(target_loc, 'tests'))
+        reset_trace()
 
     args.out = args.out.replace('\\', '/')
     folders, filename = split_out_pattern(args.out)
@@ -194,30 +302,33 @@ def execute():
     cov = coverage.Coverage(source=[target_loc], omit="*Generator.py", branch=not args.stmt_cov)
     cov.start()
 
+    # had to disable multi-thread if we need to constantly update trace.json
+    # since this style won't work with multi-thread
+    args.jobs = 0
+
     if args.iterative:
-        iter = 0
-        stale_iter = 0
-        pre_coverage = 0
+        iter = stale_iter = 0
+        cur_coverage = pre_coverage = 0
 
         max_stale_iter = args.max_stale_iter if args.max_stale_iter else 10
-        while pre_coverage < args.coverage_goal and stale_iter < max_stale_iter:
+        while cur_coverage < args.coverage_goal and stale_iter < max_stale_iter:
             args.out = f'{folders}iter_{iter}_{filename}'
-            if not args.no_gen:
-                if args.jobs > 1:
-                    with Manager() as manager:
-                        with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                            parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                            with Pool(args.jobs) as pool:
-                                for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                    pass
+            if args.jobs > 1:
+                with Manager() as manager:
+                    with generator_tool_helper(args, weights=manager.dict(get_weights(args, pre_coverage, cur_coverage)), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                        with Pool(args.jobs) as pool:
+                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                                pass
 
-                else:
-                    with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                        for i in count(0) if args.n == inf else range(args.n):
-                            create_test(generator_tool, i, seed=args.random_seed)
+            else:
+                with generator_tool_helper(args, weights=get_weights(args, pre_coverage, cur_coverage), lock=None) as generator_tool:
+                    for i in count(0) if args.n == inf else range(args.n):
+                        create_test(generator_tool, i, seed=args.random_seed)
+            pre_coverage = cur_coverage
             try:
                 file_list = glob.glob(f'{folders}iter_{iter}_*')
-                print(f"\tExecuting {file_path} with the {len(file_list)} files generated during iter {iter}.")
+                print(f"Executing {file_path} with the {len(file_list)} files generated during iter {iter}.")
                 for input_file_path in file_list:
                     with open(input_file_path, "r") as input_file:
                         file_contents = input_file.read().strip()
@@ -231,33 +342,33 @@ def execute():
             except ValueError:
                 pass
             cur_coverage = cov.report(file=dump)
-            print(f'At iter {iter}, overall coverage is {cur_coverage:.2f}%.')
+            print(f'After iter {iter}, overall coverage is {cur_coverage:.2f}%.\n')
             if cur_coverage == pre_coverage:
                 stale_iter += 1
             else:
                 stale_iter = 0
-            pre_coverage = cur_coverage
             iter += 1
         cov.stop()
-        cov.report(show_missing=True)
+        if args.ignore_final_report:
+            cov.report(show_missing=True, file=dump)
+        else:
+            cov.report(show_missing=True)
     else:
         args.out = f'{folders}_{filename}'
-        if not args.no_gen:
-            if args.jobs > 1:
-                with Manager() as manager:
-                    with generator_tool_helper(args, weights=manager.dict(args.weights), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
-                        parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
-                        with Pool(args.jobs) as pool:
-                            for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
-                                pass
-            else:
-                with generator_tool_helper(args, weights=args.weights, lock=None) as generator_tool:
-                    for i in count(0) if args.n == inf else range(args.n):
-                        create_test(generator_tool, i, seed=args.random_seed)
-        
+        if args.jobs > 1:
+            with Manager() as manager:
+                with generator_tool_helper(args, weights=manager.dict(get_weights(args, pre_coverage, cur_coverage)), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                    parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
+                    with Pool(args.jobs) as pool:
+                        for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
+                            pass
+        else:
+            with generator_tool_helper(args, weights=get_weights(args, pre_coverage, cur_coverage), lock=None) as generator_tool:
+                for i in count(0) if args.n == inf else range(args.n):
+                    create_test(generator_tool, i, seed=args.random_seed)
         try:
             file_list = glob.glob(f'{folders}*')
-            print(f"\tExecuting {file_path} with the {len(file_list)} generated files.")
+            print(f"Executing {file_path} with the {len(file_list)} generated files.")
             for input_file_path in file_list:
                 with open(input_file_path, "r") as input_file:
                     file_contents = input_file.read().strip()
@@ -271,7 +382,10 @@ def execute():
         except ValueError:
             pass
         cov.stop()
-        cov.report(show_missing=True)
+        if args.ignore_final_report:
+            cov.report(show_missing=True, file=dump)
+        else:
+            cov.report(show_missing=True)
 def split_out_pattern(path):
     idx = path.rfind('/')
     if idx != -1:

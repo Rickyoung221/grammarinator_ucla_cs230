@@ -11,11 +11,18 @@ and
 # Base Case(no iteration)
 
 in root folder, run
-
-`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator --start-filename texas.py -r game -d 12 -n 100`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --start-filename texas.py --clean-gen -d 10 -n 100`
 
 # Iterative coverage increase
 
 in root folder, run
 
-`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py -d 10 --clean-gen --max-stale-iter 2 --stmt-cov --coverage-goal 96 -n 2`
+`grammarinator-generate TexasHoldemGenerator.TexasHoldemGenerator -r game --iterative --start-filename texas.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 10 -n 5 --weighted-gen`
+
+# Other commands
+
+`-pts: --positive-temp-softmax`
+
+`--show-trace`
+
+`-ifr: --ignore-final-report`

@@ -63,6 +63,9 @@ def add_iteration_arguments(parser: ArgumentParser):
     parser.add_argument('--start-filename', type=str, help='The filename of the starting python file for the program located within ./target folder.')
     parser.add_argument('--stmt-cov', action="store_true", help='Enable statement coverage mode.')
     parser.add_argument('--max-stale-iter', type=int, help="The maximum stale iteration allowed. Default 10. Between 1 and 100.")
+    parser.add_argument('-ifr', '--ignore-final-report', action='store_true', help='Ignore the final coverage report such that the shell script can caputre the iteration count.')
+    parser.add_argument('-pts', '--positive-temp-softmax', action='store_true', help='Use positive-temp-softmax instead of negative-temp-softmax. Need to enable --weighted-gen.')
+    parser.add_argument('--show-trace', action='store_true', help="Show the trace and temperature at each iteration.")
 
 def validate_iteration_arguments(args, target_loc):
     if not args.iterative: return

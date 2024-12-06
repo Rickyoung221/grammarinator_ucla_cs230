@@ -6,7 +6,8 @@
 # according to those terms.
 
 import random
-
+import json
+import os
 from .model import Model
 
 
@@ -22,7 +23,45 @@ class DefaultModel(Model):
         Parameters ``node`` and ``idx`` are unused.
         """
         # assert sum(weights) > 0, 'Sum of weights is zero.'
-        return random.choices(range(len(weights)), weights=weights)[0]
+        if not hasattr(self, 'trace'):
+            self.init_trace()
+        choice = random.choices(range(len(weights)), weights=weights)[0]
+        #if trace has this node, divide the weight by half
+        choice_str = str(choice)
+        # the "0" correspond to alternation(not alteration)???
+        if node.name not in self.trace:
+            self.trace[node.name] = {}
+            self.trace[node.name]["0"] = {}
+        if choice_str not in self.trace[node.name]["0"]:
+            self.trace[node.name]["0"][choice_str] = 0
+        self.trace[node.name]["0"][choice_str] += 1
+        self.save_trace()
+        return choice
+
+    def init_trace(self):
+        """
+        Reads the trace dictionary.
+        Ensures that the file is closed properly and the operation completes before proceeding.
+        """            
+        try:
+            with open("target/config/trace.json", 'r') as f:
+                self.trace = json.load(f)
+        except FileNotFoundError:
+            # Handle case where trace file does not exist
+            self.trace = {}
+        except json.JSONDecodeError:
+            # Handle case where the trace file is corrupted or improperly formatted
+            self.trace = {}
+
+    def save_trace(self):
+        """
+        Saves the trace dictionary as a JSON file.
+        Ensures the operation completes before proceeding.
+        """
+        with open("target/config/trace.json", 'w') as f:
+            json.dump(self.trace, f, indent=2, sort_keys=True) 
+            f.flush()  # Flush the internal buffer to the OS buffer
+            os.fsync(f.fileno())  # Flush the OS buffer to the disk
 
     def quantify(self, node, idx, cnt, start, stop):
         """
