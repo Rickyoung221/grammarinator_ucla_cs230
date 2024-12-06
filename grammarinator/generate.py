@@ -357,13 +357,13 @@ def execute():
         args.out = f'{folders}_{filename}'
         if args.jobs > 1:
             with Manager() as manager:
-                with generator_tool_helper(args, weights=manager.dict(get_weights(args, pre_coverage, cur_coverage)), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
+                with generator_tool_helper(args, weights=manager.dict(get_weights(args, 0, 0)), lock=manager.Lock()) as generator_tool:  # pylint: disable=no-member
                     parallel_create_test = partial(create_test, generator_tool, seed=args.random_seed)
                     with Pool(args.jobs) as pool:
                         for _ in pool.imap_unordered(parallel_create_test, count(0) if args.n == inf else range(args.n)):
                             pass
         else:
-            with generator_tool_helper(args, weights=get_weights(args, pre_coverage, cur_coverage), lock=None) as generator_tool:
+            with generator_tool_helper(args, weights=get_weights(args, 0, 0), lock=None) as generator_tool:
                 for i in count(0) if args.n == inf else range(args.n):
                     create_test(generator_tool, i, seed=args.random_seed)
         try:
