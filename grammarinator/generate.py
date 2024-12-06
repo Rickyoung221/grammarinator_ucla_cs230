@@ -81,9 +81,9 @@ def get_weights(args, pre_coverage, cur_coverage):
         return {}
     if pre_coverage == 0:
         return {}
-    else:
-        temperature = 1 - max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
-    
+    temperature = max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
+    if not args.positive_temp_softmax:
+        temperature = 1-temperature
     with open('target/config/trace.json', 'r') as f:
         trace = json.load(f)
         raw_weights = calc_weights(trace, temperature=temperature)
@@ -232,7 +232,6 @@ def execute():
                              'after it has been chosen (interval: (0, 1]; default: %(default)f).')
     parser.add_argument('-w', '--weighted-gen', action='store_true',
                         help='enable weighted generation for alternatives.')
-    parser.add_argument('--show-trace', action='store_true', help="Show the trace and temperature at each iteration.")
 
     # Evolutionary settings.
     parser.add_argument('--population', metavar='DIR',
@@ -350,7 +349,10 @@ def execute():
                 stale_iter = 0
             iter += 1
         cov.stop()
-        cov.report(show_missing=True, file=dump)
+        if args.ignore_final_report:
+            cov.report(show_missing=True, file=dump)
+        else:
+            cov.report(show_missing=True)
     else:
         args.out = f'{folders}_{filename}'
         if args.jobs > 1:
@@ -380,7 +382,10 @@ def execute():
         except ValueError:
             pass
         cov.stop()
-        cov.report(show_missing=True, file=dump)
+        if args.ignore_final_report:
+            cov.report(show_missing=True, file=dump)
+        else:
+            cov.report(show_missing=True)
 def split_out_pattern(path):
     idx = path.rfind('/')
     if idx != -1:

@@ -1,9 +1,11 @@
 # for loop
 cat /dev/null > target/iter_trace.csv
+echo "unweighted, neg_temp, pos_temp" >> target/iter_counts.csv
 for i in {1..10}
 do
-    WEIGHTED_ITER=$(grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 11 -n 5 --weighted-gen | tail -n 2 | grep 'iter' | awk '{print $3}' | sed 's/.$//' )
-    ITER=$(grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 11 -n 5 | tail -n 2 | grep 'iter' | awk '{print $3}' | sed 's/.$//' )
+    UNWEIGHTED_ITER=$(grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 11 -n 5 -ifr | tail -n 2 | grep 'iter' | awk '{print $3}' | sed 's/.$//' )
+    NEG_SOFTMAX_ITER=$(grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 11 -n 5 --weighted-gen -ifr | tail -n 2 | grep 'iter' | awk '{print $3}' | sed 's/.$//' )
+    POS_SOFTMAX_ITER=$(grammarinator-generate CalculatorGenerator.CalculatorGenerator -r equation --iterative --start-filename calculator.py --clean-gen --stmt-cov --coverage-goal 96 --max-stale-iter 100 -d 11 -n 5 --weighted-gen -pts -ifr | tail -n 2 | grep 'iter' | awk '{print $3}' | sed 's/.$//' )
 
-    echo "$WEIGHTED_ITER, $ITER" >> target/iter_trace.csv
+    echo "$UNWEIGHTED_ITER, $NEG_SOFTMAX_ITER, $POS_SOFTMAX_ITER" >> target/iter_counts.csv
 done
