@@ -350,7 +350,7 @@ def execute():
                 stale_iter = 0
             iter += 1
         cov.stop()
-        cov.report(show_missing=True)
+        cov.report(show_missing=True, file=dump)
     else:
         args.out = f'{folders}_{filename}'
         if args.jobs > 1:
@@ -380,7 +380,7 @@ def execute():
         except ValueError:
             pass
         cov.stop()
-        cov.report(show_missing=True)
+        cov.report(show_missing=True, file=dump)
 def split_out_pattern(path):
     idx = path.rfind('/')
     if idx != -1:
