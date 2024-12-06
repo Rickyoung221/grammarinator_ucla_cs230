@@ -7,6 +7,7 @@
 
 import glob
 import json
+import math
 import os
 import random
 import pprint
@@ -81,7 +82,7 @@ def get_weights(args, pre_coverage, cur_coverage):
         return {}
     if pre_coverage == 0:
         return {}
-    temperature = max(cur_coverage - pre_coverage, 0.001) / max(100 - pre_coverage, 0.1)
+    temperature = (cur_coverage - pre_coverage) / (100 - pre_coverage)
     if not args.positive_temp_softmax:
         temperature = 1-temperature
     with open('target/config/trace.json', 'r') as f:
@@ -176,14 +177,15 @@ def softmax_scaling(counts, temperature, alpha=0.5, beta=0.2, decay_factor=1.0, 
     # Interpolation between distributions
     if temperature > threshold:
         # Interpolate between softmax and flat distribution
-        weight_factor = threshold / temperature  # Decreases as temperature increases
+        normalized_temp = (temperature - threshold) / (1 - threshold)
+        weight_factor = 1 if normalized_temp > 0.25 else 4*normalized_temp
         scaled_weights = {
-            k: (1 - weight_factor) * softmax_scaled[k] + weight_factor * flat_distribution[k]
+            k: weight_factor * softmax_scaled[k] + (1 - weight_factor) * flat_distribution[k]
             for k in counts
         }
     else:
         # Interpolate between inverse softmax and flat distribution
-        weight_factor = temperature / threshold  # Decreases as temperature decreases
+        weight_factor = temperature / threshold
         scaled_weights = {
             k: (1 - weight_factor) * inverse_softmax_scaled[k] + weight_factor * flat_distribution[k]
             for k in counts
