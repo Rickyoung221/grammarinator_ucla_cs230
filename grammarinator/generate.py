@@ -130,7 +130,7 @@ def calc_weights(trace, temperature=1.0):
             weights[key][sub_key] = softmax_scaling(counts, temperature)
     return weights
 
-def softmax_scaling(counts, temperature, alpha=0.5, beta=0.2, decay_factor=1.0, threshold=0.1):
+def softmax_scaling(counts, temperature, alpha=2, beta=2, decay_factor=1.0, threshold=0.1):
     """
     Temperature-modulated softmax scaling with decay.
 
