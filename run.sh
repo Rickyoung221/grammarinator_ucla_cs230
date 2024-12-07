@@ -8,5 +8,3 @@ do
 
     echo "$UNWEIGHTED_ITER,$NEG_SOFTMAX_ITER,$POS_SOFTMAX_ITER" >> target/iter_counts.csv
 done
-
-python eval.py
